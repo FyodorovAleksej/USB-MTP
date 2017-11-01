@@ -5,7 +5,7 @@ import os
 import re
 
 import sys
-
+from USBAdapter import UsbAdapter
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QAction, QTableWidgetItem, QTableView, QHeaderView, QItemDelegate, QAbstractItemView, \
@@ -16,6 +16,7 @@ from mainwindow import Ui_MainWindow
 
 class MyWin(QtWidgets.QMainWindow):
     dirList = []
+    usbAdapter = UsbAdapter()
 
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -66,38 +67,23 @@ class MyWin(QtWidgets.QMainWindow):
 
     def refreshDirectories(self):
         #self.clearTable()
-        subprocess.call("lsblk -p | grep 'sd[^a][0-9]' > " + os.getcwd() + "/log.txt", shell=True)
-        logfile = open(os.getcwd() + "/log.txt", "r+")
-        usbList = []
-        for i in logfile:
-            s = re.split(r" +",i)
-            dev = s[0][s[0].index("/"):]
-            flag = -1
-            usbList.append(dev)
+        usbList = self.usbAdapter.getUsbList()
+        nameList = []
+        flag = -1
+        for usbInfo in usbList:
+            nameList.append(usbInfo["name"])
             for index in range(self.ui.tableWidget.rowCount()):
                 if (self.ui.tableWidget.item(index, 0) != None):
-                    if (self.ui.tableWidget.item(index, 0).text() == dev):
+                    if (self.ui.tableWidget.item(index, 0).text() == usbInfo["name"]):
                         flag = index
             if (flag == -1):
-                mount = s[6]
-                subprocess.call("df -hm | grep " + dev + " > " + os.getcwd() + "/memory.txt", shell=True)
-                memoryfile = open(os.getcwd() + "/memory.txt")
+                if (usbInfo != None):
+                    self.appendText(usbInfo["name"], usbInfo["mountPoint"], str((usbInfo["size"])["free"]) + "/" + str((usbInfo["size"])["used"]) + "/" + str((usbInfo["size"])["all"]))
 
-            # saving memory
-                memdict = {"all": 0, "free": 0, "used": 0}
-                line = memoryfile.readline()
-                result = re.split(r" +", line)
-                if (len(result) >= 3):
-                    memdict["all"] = memdict["all"] + int(result[1])
-                    memdict["used"] = memdict["used"] + int(result[2])
-                    memdict["free"] = memdict["free"] + int(result[3])
-                    self.appendText(dev, mount, str(memdict["free"]) + "/" + str(memdict["used"]) + "/" + str(memdict["all"]))
-                memoryfile.close()
         for i in range(0, self.ui.tableWidget.rowCount()):
             if (self.ui.tableWidget.item(i,0) != None):
-                if (not (self.ui.tableWidget.item(i,0).text() in usbList)):
+                if (not (self.ui.tableWidget.item(i,0).text() in nameList)):
                     self.ui.tableWidget.removeRow(i)
-        logfile.close()
 
     def clearTable(self):
         self.ui.tableWidget.clearContents()
@@ -106,13 +92,7 @@ class MyWin(QtWidgets.QMainWindow):
     def eject(self):
         indexes = self.ui.tableWidget.selectionModel().selectedRows()
         for index in sorted(indexes):
-            subprocess.call("eject " + self.ui.tableWidget.item(index.row(),0).text() + " > " + os.getcwd() + "/eject.txt", shell=True)
-            ejectFile = open(os.getcwd() + "/eject.txt", "r+")
-            message = ejectFile.read()
-            if (message != None):
-                error = QMessageBox(self)
-                error.setText(message)
-
+            self.usbAdapter.eject(self.ui.tableWidget.item(index.row(),0).text())
 
 if __name__=="__main__":
     app = QtWidgets.QApplication(sys.argv)
