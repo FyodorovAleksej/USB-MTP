@@ -25,7 +25,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget.insertRow(self.ui.tableWidget.rowCount())
         header1 = QTableWidgetItem("name")
         header2 = QTableWidgetItem("directory")
-        header3 = QTableWidgetItem("size")
+        header3 = QTableWidgetItem("size: free/used/all (M)")
         self.ui.tableWidget.setHorizontalHeaderItem(0,header1)
         self.ui.tableWidget.setHorizontalHeaderItem(1,header2)
         self.ui.tableWidget.setHorizontalHeaderItem(2,header3)
@@ -33,7 +33,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         headers = self.ui.tableWidget.horizontalHeader()
         headers.setStretchLastSection(True)
-        self.appendText("usb","/media","123/3567/890")
 
         self.ui.ejectButton.clicked.connect(self.eject)
 
@@ -67,7 +66,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def refreshDirectories(self):
         #self.clearTable()
-        subprocess.call("lsblk -p | grep 'sdb[0-9]' > " + os.getcwd() + "/log.txt", shell=True)
+        subprocess.call("lsblk -p | grep 'sd[^a][0-9]' > " + os.getcwd() + "/log.txt", shell=True)
         logfile = open(os.getcwd() + "/log.txt", "r+")
         usbList = []
         for i in logfile:
@@ -76,8 +75,9 @@ class MyWin(QtWidgets.QMainWindow):
             flag = -1
             usbList.append(dev)
             for index in range(self.ui.tableWidget.rowCount()):
-                if (self.ui.tableWidget.item(index, 0).text() == dev):
-                    flag = index
+                if (self.ui.tableWidget.item(index, 0) != None):
+                    if (self.ui.tableWidget.item(index, 0).text() == dev):
+                        flag = index
             if (flag == -1):
                 mount = s[6]
                 subprocess.call("df -hm | grep " + dev + " > " + os.getcwd() + "/memory.txt", shell=True)
@@ -91,7 +91,7 @@ class MyWin(QtWidgets.QMainWindow):
                     memdict["all"] = memdict["all"] + int(result[1])
                     memdict["used"] = memdict["used"] + int(result[2])
                     memdict["free"] = memdict["free"] + int(result[3])
-                    self.appendText(dev, mount, str(memdict["all"]) + "/" + str(memdict["used"]) + "/" + str(memdict["free"]))
+                    self.appendText(dev, mount, str(memdict["free"]) + "/" + str(memdict["used"]) + "/" + str(memdict["all"]))
                 memoryfile.close()
         for i in range(0, self.ui.tableWidget.rowCount()):
             if (self.ui.tableWidget.item(i,0) != None):
