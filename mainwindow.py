@@ -26,6 +26,9 @@ class Ui_MainWindow(object):
         self.ejectButton = QtWidgets.QPushButton(self.centralWidget)
         self.ejectButton.setObjectName("ejectButton")
         self.gridLayout.addWidget(self.ejectButton, 1, 0, 1, 1)
+        self.infoLabel = QtWidgets.QLabel(self.centralWidget)
+        self.infoLabel.setObjectName("infoLabel")
+        self.gridLayout.addWidget(self.infoLabel, 2, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)
         self.menuBar.setGeometry(QtCore.QRect(0, 0, 400, 19))
@@ -45,4 +48,5 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.ejectButton.setText(_translate("MainWindow", "Eject"))
+        self.infoLabel.setText(_translate("MainWindow", "Info:"))
 

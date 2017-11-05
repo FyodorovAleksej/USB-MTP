@@ -7,9 +7,9 @@ import re
 import sys
 from USBAdapter import UsbAdapter
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QTableWidgetItem, QTableView, QHeaderView, QItemDelegate, QAbstractItemView, \
-    QMessageBox
+    QMessageBox, QApplication, QMainWindow
 
 from mainwindow import Ui_MainWindow
 
@@ -34,6 +34,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         headers = self.ui.tableWidget.horizontalHeader()
         headers.setStretchLastSection(True)
+        self.ui.tableWidget.setRowCount(0)
 
         self.ui.ejectButton.clicked.connect(self.eject)
 
@@ -68,6 +69,8 @@ class MyWin(QtWidgets.QMainWindow):
     def refreshDirectories(self):
         #self.clearTable()
         usbList = self.usbAdapter.getUsbList()
+        mtpList = self.usbAdapter.mtpDevice()
+        usbList = usbList + mtpList
         nameList = []
         flag = -1
         for usbInfo in usbList:
@@ -79,6 +82,9 @@ class MyWin(QtWidgets.QMainWindow):
             if (flag == -1):
                 if (usbInfo != None):
                     self.appendText(usbInfo["name"], usbInfo["mountPoint"], str((usbInfo["size"])["free"]) + "/" + str((usbInfo["size"])["used"]) + "/" + str((usbInfo["size"])["all"]))
+            else:
+                self.updateRow(index, usbInfo)
+
 
         for i in range(0, self.ui.tableWidget.rowCount()):
             if (self.ui.tableWidget.item(i,0) != None):
@@ -92,13 +98,33 @@ class MyWin(QtWidgets.QMainWindow):
     def eject(self):
         indexes = self.ui.tableWidget.selectionModel().selectedRows()
         for index in sorted(indexes):
-            self.usbAdapter.eject(self.ui.tableWidget.item(index.row(),0).text())
+            message = self.usbAdapter.eject(self.ui.tableWidget.item(index.row(), 0).text())
+            self.errorInfo(message)
+
+
+    def errorInfo(self, message):
+        if (message != None):
+            self.ui.infoLabel.setText("info: " + message)
+
+    def updateRow(self, row, usbInfo):
+        item1 = QTableWidgetItem(usbInfo["name"])
+        item1.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        item2 = QTableWidgetItem(usbInfo["mountPoint"])
+        item2.setFlags(QtCore.Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        item3 = QTableWidgetItem(str((usbInfo["size"])["free"]) + "/" + str((usbInfo["size"])["used"]) + "/" + str((usbInfo["size"])["all"]))
+        item3.setFlags(QtCore.Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        table = self.ui.tableWidget
+
+        if (row < table.rowCount()):
+            table.setItem(row, 0, item1)
+            table.setItem(row, 1, item2)
+            table.setItem(row, 2, item3)
 
 if __name__=="__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = MyWin()
-
     window.show()
+
 
     #creating timer for refresh main window
     timer = QTimer()
